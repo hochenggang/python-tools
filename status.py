@@ -5,18 +5,14 @@ import logging
 import sqlite3
 from functools import wraps
 
-# 初始化日志配置
+# init log
 logging.basicConfig(
     filename='./log.txt',
-    level=logging.WARN,
+    level=logging.WARNING,
     format='%(asctime)s - %(levelname)s - %(funcName)s - %(message)s'
 )
 
 def decorator_logging_timer():
-    '''
-    装饰器
-    使用日志记录函数的执行时间
-    '''
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -32,43 +28,40 @@ def decorator_logging_timer():
     return decorator
 
 
-
-# 封装数据库 cursor
 class sqlite_cursor:
     def __init__(self, db_path):
         self.db_path = db_path
         if not self.db_path:
-            raise ValueError("数据库路径不能为空")
+            raise ValueError("@db_path required.")
 
     def __enter__(self):
         try:
             self.conn = sqlite3.connect(self.db_path)
             self.cursor = self.conn.cursor()
-            logging.debug(f"成功连接到数据库: {self.db_path}")
             return self.cursor
         except sqlite3.Error as e:
-            logging.error(f"连接数据库时发生错误: {e}")
+            logging.error(f"unable to connect {self.db_path}: {e}")
             raise
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            logging.error(f"执行SQL时发生异常: {exc_val}")
+            logging.error(f"when context manager quiting, error happend: {exc_val}")
 
         try:
             if self.cursor:
                 self.cursor.close()
             if self.conn:
                 self.conn.close()
-            logging.debug("数据库连接已关闭")
+            logging.debug("database closed.")
         except sqlite3.Error as e:
-            logging.error(f"关闭数据库连接时发生错误: {e}")
+            logging.error(f"error on closing database: {e}")
             
-            
-# 准备状态管理
+
+
+
 class KV:
     '''
-    数据库抽象层
-    提供数据库初始化和数据查询
+    a simple key and value storage class based on sqlite and pickle
     '''
     def __init__(self, db_path:str=os.path.join(os.getcwd(),'status.db')):
         self.db_path = db_path
@@ -113,7 +106,7 @@ class KV:
 
 default_kv = KV()
 
-# 测试
+# test
 if __name__ == "__main__":
     kv = default_kv
     for i in range(100):
